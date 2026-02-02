@@ -8,159 +8,374 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto+Sans+TC', sans-serif; background: #fdfbf7; }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
         [v-cloak] { display: none; }
-        .btn-bounce:active { transform: scale(0.92); }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
-        .tab-shadow { box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2); }
+        .btn-bounce:active { transform: scale(0.95); }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .tab-shadow { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        .card-shadow { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.2s;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        /* 自定義滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen">
     <div id="app" v-cloak>
-        <div class="fixed top-2 right-2 z-50 flex items-center bg-white/80 px-3 py-1 rounded-full shadow-sm border border-slate-100">
-            <div :class="['w-2 h-2 rounded-full mr-2', isSyncing ? 'bg-orange-400 animate-pulse' : 'bg-emerald-500']"></div>
-            <span class="text-[10px] font-bold text-slate-500">{{ isSyncing ? '同步中...' : '已同步雲端' }}</span>
+        <!-- 狀態指示器 -->
+        <div class="fixed top-3 right-3 z-50 flex items-center bg-white px-3 py-1.5 rounded-lg shadow-md border border-gray-200">
+            <div :class="['w-2 h-2 rounded-full mr-2', isSyncing ? 'bg-amber-500 animate-pulse' : 'bg-blue-600']"></div>
+            <span class="text-xs font-semibold text-gray-700">{{ isSyncing ? '同步中...' : '已同步' }}</span>
         </div>
 
-        <header class="pt-10 pb-4 px-6 max-w-md mx-auto">
-            <h1 class="text-3xl font-black text-emerald-600 tracking-tighter italic">COFFEE <span class="text-orange-400">CLOUD</span></h1>
-            <p class="text-slate-400 text-xs mt-1">智慧雲端同步，紀錄永不丟失 ✨</p>
+        <!-- 標頭 -->
+        <header class="pt-12 pb-6 px-6 max-w-md mx-auto">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">咖啡口袋</h1>
+                    <p class="text-sm text-gray-500 mt-1 font-medium">智慧雲端同步管理</p>
+                </div>
+                <div class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+                    CLOUD
+                </div>
+            </div>
         </header>
 
-        <nav class="max-w-md mx-auto px-4 mb-8 sticky top-4 z-40">
-            <div class="bg-emerald-100/50 p-1.5 rounded-3xl flex space-x-1 glass border border-white tab-shadow">
+        <!-- 導航標籤 -->
+        <nav class="max-w-md mx-auto px-5 mb-6">
+            <div class="bg-white p-1.5 rounded-xl flex space-x-1 border border-gray-200 tab-shadow">
                 <button @click="currentTab = 'log'" 
-                    :class="['flex-1 py-3 rounded-2xl font-black transition-all btn-bounce text-sm', currentTab === 'log' ? 'bg-white text-emerald-600 shadow-md' : 'text-emerald-700/50']">
-                    ☕ 領用
+                    :class="['flex-1 py-3 rounded-lg font-bold transition-all btn-bounce text-sm', currentTab === 'log' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900']">
+                    ☕ 領用紀錄
                 </button>
                 <button @click="currentTab = 'record'" 
-                    :class="['flex-1 py-3 rounded-2xl font-black transition-all btn-bounce text-sm', currentTab === 'record' ? 'bg-white text-emerald-600 shadow-md' : 'text-emerald-700/50']">
-                    📋 記杯
+                    :class="['flex-1 py-3 rounded-lg font-bold transition-all btn-bounce text-sm', currentTab === 'record' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900']">
+                    📋 寄杯清單
                 </button>
                 <button @click="currentTab = 'settings'" 
-                    :class="['flex-1 py-3 rounded-2xl font-black transition-all btn-bounce text-sm', currentTab === 'settings' ? 'bg-white text-emerald-600 shadow-md' : 'text-emerald-700/50']">
+                    :class="['flex-1 py-3 rounded-lg font-bold transition-all btn-bounce text-sm', currentTab === 'settings' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900']">
                     ⚙️ 設定
                 </button>
             </div>
         </nav>
 
-        <main class="max-w-md mx-auto px-5">
-            <div v-show="currentTab === 'log'" class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-black text-slate-800">領用日誌</h2>
-                    <button @click="openLogModal()" class="bg-emerald-500 text-white p-3 rounded-2xl shadow-lg shadow-emerald-100 btn-bounce">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+        <!-- 主要內容 -->
+        <main class="max-w-md mx-auto px-5 pb-20">
+            <!-- 領用日誌 -->
+            <div v-show="currentTab === 'log'" class="space-y-2.5">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900">領用日誌</h2>
+                        <p class="text-xs text-gray-500 mt-1">記錄所有咖啡領取與儲值</p>
+                    </div>
+                    <button @click="openLogModal()" class="bg-blue-600 text-white p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow btn-bounce">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     </button>
                 </div>
 
-                <div v-for="log in sortedLogs" :key="log.id" class="bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-50 flex items-center space-x-4 transition hover:shadow-md">
-                    <div class="bg-emerald-50 p-4 rounded-3xl text-emerald-600 font-black text-lg">
-                        {{ log.count }}
+                <div v-if="sortedLogs.length === 0" class="bg-white p-8 rounded-xl border border-gray-200 text-center">
+                    <div class="text-gray-300 mb-3">
+                        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
-                    <div class="flex-1">
-                        <div class="text-[10px] font-bold text-slate-300 uppercase leading-none mb-1">{{ log.date }}</div>
-                        <div class="font-bold text-slate-700 leading-tight">{{ getRecordName(log.recordId) }}</div>
-                        <div v-if="log.note" class="text-xs text-slate-400 mt-1 italic opacity-70">"{{ log.note }}"</div>
+                    <p class="text-gray-500 text-sm font-medium">尚未有領用紀錄</p>
+                    <p class="text-gray-400 text-xs mt-1">點擊右上角 + 按鈕開始記錄</p>
+                </div>
+
+                <div v-for="log in sortedLogs" :key="log.id" 
+                     class="bg-white p-4 rounded-xl border border-gray-200 card-shadow hover:border-gray-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <!-- 日期行 - 字體加大，行距縮小 -->
+                            <div class="flex items-center mb-1.5">
+                                <span class="text-sm font-bold text-gray-600 tracking-wide">{{ log.date }}</span>
+                                <span class="mx-2 text-gray-300">•</span>
+                                <span class="text-xs font-semibold text-gray-500 truncate">{{ getRecordName(log.recordId) }}</span>
+                            </div>
+                            
+                            <!-- 杯數顯示行 - 字體加大，行距縮小 -->
+                            <div class="flex items-center space-x-3 mt-1">
+                                <div class="flex items-center">
+                                    <span :class="['text-base font-bold', log.count > 0 ? 'text-emerald-600' : 'text-rose-600']">
+                                        {{ log.count > 0 ? '+' : '' }}{{ log.count }}
+                                    </span>
+                                    <span class="text-gray-400 mx-1.5">=</span>
+                                    <span class="text-lg font-black text-gray-900">
+                                        {{ getRemainingAfterLog(log) }}
+                                    </span>
+                                </div>
+                                
+                                <div v-if="log.note" class="text-xs text-gray-500 truncate max-w-[120px]">
+                                    {{ log.note }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button @click="deleteLog(log.id)" class="ml-3 text-gray-300 hover:text-rose-500 p-1 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
                     </div>
-                    <button @click="deleteLog(log.id)" class="text-rose-200 hover:text-rose-500 p-2 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                 </div>
             </div>
 
-            <div v-show="currentTab === 'record'" class="space-y-5">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-black text-slate-800">寄杯清單</h2>
-                    <button @click="openRecordModal()" class="bg-orange-400 text-white p-3 rounded-2xl shadow-lg shadow-orange-100 btn-bounce">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+            <!-- 寄杯清單 -->
+            <div v-show="currentTab === 'record'" class="space-y-3.5">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900">寄杯清單</h2>
+                        <p class="text-xs text-gray-500 mt-1">管理您的咖啡寄杯</p>
+                    </div>
+                    <button @click="openRecordModal()" class="bg-blue-600 text-white p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow btn-bounce">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     </button>
                 </div>
 
-                <div v-for="item in records" :key="item.id" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-50 overflow-hidden relative">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
+                <div v-if="records.length === 0" class="bg-white p-8 rounded-xl border border-gray-200 text-center">
+                    <div class="text-gray-300 mb-3">
+                        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-medium">尚未建立寄杯</p>
+                    <p class="text-gray-400 text-xs mt-1">點擊右上角 + 按鈕新增寄杯</p>
+                </div>
+
+                <div v-for="item in records" :key="item.id" class="bg-white rounded-xl border border-gray-200 overflow-hidden card-shadow">
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
                             <div>
-                                <span class="bg-orange-100 text-orange-600 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">{{ item.store }}</span>
-                                <h3 class="text-2xl font-black text-slate-800 mt-2 tracking-tight">{{ item.itemName }}</h3>
-                                <p class="text-xs text-slate-300 font-bold mt-1">SN: {{ item.sn }} · {{ item.date }}</p>
+                                <div class="flex items-center mb-1.5">
+                                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-lg">{{ item.store }}</span>
+                                    <span class="text-xs text-gray-400 ml-2 font-medium">SN: {{ item.sn }}</span>
+                                </div>
+                                <!-- 品項名稱字體加大 -->
+                                <h3 class="text-base font-bold text-gray-900 mb-0.5">{{ item.itemName }}</h3>
+                                <!-- 日期字體加大 -->
+                                <p class="text-sm text-gray-500">{{ item.date }}</p>
                             </div>
                             <div class="text-right">
-                                <div class="text-4xl font-black text-orange-400 tracking-tighter">{{ item.remaining }}</div>
-                                <div class="text-[10px] text-slate-300 font-bold">LEFT / {{ item.total }}</div>
+                                <div class="text-3xl font-black text-gray-900">{{ item.remaining }}</div>
+                                <div class="text-xs text-gray-500 font-medium">剩餘 / {{ item.total }}</div>
                             </div>
                         </div>
-                        <div class="flex space-x-3 pt-2">
-                            <button @click="openRecordModal(item)" class="flex-1 py-3 bg-slate-50 text-slate-500 rounded-2xl text-xs font-black btn-bounce">編輯詳情</button>
-                            <button @click="deleteRecord(item.id)" class="px-5 py-3 bg-rose-50 text-rose-400 rounded-2xl text-xs font-black btn-bounce">刪除</button>
+                        
+                        <div class="mb-3">
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>進度</span>
+                                <span>{{ Math.round((item.remaining/item.total)*100) }}%</span>
+                            </div>
+                            <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-600 transition-all duration-500" :style="{ width: (item.remaining/item.total*100) + '%' }"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="h-1.5 w-full bg-slate-50">
-                        <div class="h-full bg-emerald-400 transition-all duration-1000" :style="{ width: (item.remaining/item.total*100) + '%' }"></div>
+                        
+                        <div class="flex space-x-2">
+                            <button @click="openRecordModal(item)" class="flex-1 py-2.5 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors btn-bounce">
+                                編輯
+                            </button>
+                            <button @click="deleteRecord(item.id)" class="px-4 py-2.5 bg-rose-50 text-rose-600 rounded-lg text-sm font-semibold hover:bg-rose-100 transition-colors btn-bounce">
+                                刪除
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- 設定 -->
             <div v-show="currentTab === 'settings'" class="space-y-6">
-                <section class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-50">
-                    <h3 class="font-black text-lg text-slate-800 mb-6 flex items-center italic">
-                        <span class="w-2 h-6 bg-emerald-500 rounded-full mr-3"></span>
+                <section class="bg-white p-6 rounded-xl border border-gray-200">
+                    <h3 class="font-bold text-lg text-gray-900 mb-4 flex items-center">
+                        <span class="w-1.5 h-5 bg-blue-600 rounded-full mr-2"></span>
                         超商名稱管理
                     </h3>
-                    <div class="flex flex-wrap gap-2 mb-6">
-                        <span v-for="s in stores" :key="s" class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl text-xs font-black flex items-center">
+                    
+                    <div class="flex flex-wrap gap-2 mb-5">
+                        <span v-for="s in stores" :key="s" 
+                              class="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center border border-gray-200">
                             {{ s }}
-                            <button @click="removeStore(s)" class="ml-2 opacity-30 hover:opacity-100">&times;</button>
+                            <button @click="removeStore(s)" 
+                                    class="ml-2 text-gray-400 hover:text-rose-500 text-xs transition-colors">
+                                ✕
+                            </button>
                         </span>
                     </div>
+                    
                     <div class="flex space-x-2">
-                        <input v-model="newStoreName" type="text" placeholder="新增名稱..." class="flex-1 bg-slate-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-400">
-                        <button @click="addStore" class="bg-emerald-600 text-white px-6 rounded-2xl font-black btn-bounce text-sm">新增</button>
+                        <input v-model="newStoreName" type="text" placeholder="輸入超商名稱..." 
+                               class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button @click="addStore" 
+                                class="bg-blue-600 text-white px-5 rounded-lg font-semibold hover:bg-blue-700 transition-colors btn-bounce text-sm">
+                            新增
+                        </button>
                     </div>
                 </section>
 
-                <div class="p-6 text-center">
-                    <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Data synced with Google Firebase</p>
+                <div class="bg-white p-5 rounded-xl border border-gray-200">
+                    <h3 class="font-bold text-lg text-gray-900 mb-4 flex items-center">
+                        <span class="w-1.5 h-5 bg-blue-600 rounded-full mr-2"></span>
+                        系統資訊
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">寄杯數量</span>
+                            <span class="text-sm font-bold text-gray-900">{{ records.length }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">領用紀錄</span>
+                            <span class="text-sm font-bold text-gray-900">{{ logs.length }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">同步狀態</span>
+                            <span :class="['text-xs font-bold px-2 py-1 rounded', isSyncing ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800']">
+                                {{ isSyncing ? '同步中' : '已同步' }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">應用程式版本</span>
+                            <span class="text-xs font-bold text-blue-600 px-2 py-1 bg-blue-50 rounded">20260202.01</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center pt-4">
+                    <p class="text-xs text-gray-400 font-medium">資料同步至 Google Firebase</p>
+                    <p class="text-xs text-gray-400 mt-1">版本 20260202.01</p>
                 </div>
             </div>
         </main>
 
+        <!-- 模態對話框 -->
         <transition name="fade">
             <div v-if="modals.record.show || modals.log.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0">
-                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" @click="closeModals"></div>
-                <div class="relative bg-white w-full max-w-md rounded-t-[3.5rem] sm:rounded-[3.5rem] p-10 shadow-2xl transition-all">
-                    <div class="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8 sm:hidden"></div>
+                <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" @click="closeModals"></div>
+                <div class="relative bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl transition-all">
+                    <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden"></div>
                     
-                    <div v-if="modals.record.show" class="space-y-5">
-                        <h3 class="text-2xl font-black text-slate-800 mb-2 italic">記杯設定</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="date" v-model="modals.record.data.date" class="bg-slate-50 border-none rounded-2xl p-4 text-sm">
-                            <input type="text" v-model="modals.record.data.sn" placeholder="編號" class="bg-slate-50 border-none rounded-2xl p-4 text-sm">
+                    <div v-if="modals.record.show" class="space-y-4">
+                        <h3 class="text-xl font-bold text-gray-900 mb-1">{{ modals.record.isEdit ? '編輯寄杯' : '新增寄杯' }}</h3>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">日期</label>
+                                <input type="date" v-model="modals.record.data.date" 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">編號</label>
+                                <input type="text" v-model="modals.record.data.sn" placeholder="例: A001" 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
                         </div>
-                        <select v-model="modals.record.data.store" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm">
-                            <option v-for="s in stores" :key="s" :value="s">{{ s }}</option>
-                        </select>
-                        <input type="text" v-model="modals.record.data.itemName" placeholder="咖啡品項 (如：大冰美)" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
-                        <input type="number" v-model.number="modals.record.data.total" placeholder="總杯數" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm">
-                        <div class="flex space-x-3 pt-4">
-                            <button @click="closeModals" class="flex-1 py-4 font-black text-slate-300">取消</button>
-                            <button @click="saveRecord" class="flex-[2] py-4 bg-emerald-600 text-white rounded-[2rem] font-black shadow-xl shadow-emerald-100 btn-bounce">儲存紀錄</button>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">超商</label>
+                            <select v-model="modals.record.data.store" 
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option v-for="s in stores" :key="s" :value="s">{{ s }}</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">品項名稱</label>
+                            <input type="text" v-model="modals.record.data.itemName" placeholder="例: 大杯冰美式" 
+                                   class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">總杯數</label>
+                            <input type="number" v-model.number="modals.record.data.total" placeholder="輸入數字" 
+                                   class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-2">
+                            <button @click="closeModals" 
+                                    class="flex-1 py-3 font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+                                取消
+                            </button>
+                            <button @click="saveRecord" 
+                                    class="flex-[2] py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm btn-bounce">
+                                {{ modals.record.isEdit ? '更新紀錄' : '儲存紀錄' }}
+                            </button>
                         </div>
                     </div>
 
-                    <div v-if="modals.log.show" class="space-y-5">
-                        <h3 class="text-2xl font-black text-slate-800 mb-2 italic">領用咖啡</h3>
-                        <select v-model="modals.log.data.recordId" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold">
-                            <option value="">請選擇你的寄杯...</option>
-                            <option v-for="r in activeRecordsForLog" :key="r.id" :value="r.id">[{{ r.store }}] {{ r.itemName }} (剩{{ r.remaining }})</option>
-                        </select>
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="date" v-model="modals.log.data.date" class="bg-slate-50 border-none rounded-2xl p-4 text-sm">
-                            <input type="number" v-model.number="modals.log.data.count" class="bg-slate-50 border-none rounded-2xl p-4 text-sm">
+                    <div v-if="modals.log.show" class="space-y-4">
+                        <h3 class="text-xl font-bold text-gray-900 mb-1">{{ modals.log.isEdit ? '編輯紀錄' : '領用/儲值' }}</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">選擇寄杯</label>
+                            <select v-model="modals.log.data.recordId" 
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium">
+                                <option value="">請選擇寄杯項目...</option>
+                                <option v-for="r in activeRecordsForLog" :key="r.id" :value="r.id">
+                                    [{{ r.store }}] {{ r.itemName }} (剩 {{ r.remaining }} 杯)
+                                </option>
+                            </select>
                         </div>
-                        <input type="text" v-model="modals.log.data.note" placeholder="領用備註" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm">
-                        <div class="flex space-x-3 pt-4">
-                            <button @click="closeModals" class="flex-1 py-4 font-black text-slate-300">取消</button>
-                            <button @click="saveLog" :disabled="!modals.log.data.recordId" class="flex-[2] py-4 bg-orange-400 text-white rounded-[2rem] font-black shadow-xl shadow-orange-100 btn-bounce disabled:opacity-30">確認領取</button>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">日期</label>
+                                <input type="date" v-model="modals.log.data.date" 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">數量</label>
+                                <input type="number" v-model.number="modals.log.data.count" 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="負數為領用">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">備註</label>
+                            <input type="text" v-model="modals.log.data.note" placeholder="選填備註說明" 
+                                   class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                            <div class="flex items-center text-sm text-blue-800">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="font-medium">提示</span>
+                            </div>
+                            <p class="text-xs text-blue-700 mt-1">
+                                輸入正數為儲值（增加杯數），輸入負數為領用（減少杯數）
+                            </p>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-2">
+                            <button @click="closeModals" 
+                                    class="flex-1 py-3 font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+                                取消
+                            </button>
+                            <button @click="saveLog" :disabled="!modals.log.data.recordId || !modals.log.data.count" 
+                                    :class="['flex-[2] py-3 rounded-lg font-semibold transition-colors shadow-sm btn-bounce', 
+                                            modals.log.data.count >= 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white']">
+                                {{ modals.log.data.count >= 0 ? '確認儲值' : '確認領用' }}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -169,19 +384,17 @@
     </div>
 
     <script>
-        // *** 重要：請在此處填入你的 Firebase 配置 ***
         const firebaseConfig = {
-			apiKey: "AIzaSyDCzZTk1MLMy3tA0XMI9b8mHZXQnmY2Khg",
-			authDomain: "my-coffee-8ea0a.firebaseapp.com",
-			databaseURL: "https://my-coffee-8ea0a-default-rtdb.firebaseio.com",
-			projectId: "my-coffee-8ea0a",
-			storageBucket: "my-coffee-8ea0a.firebasestorage.app",
-			messagingSenderId: "705727877431",
-			appId: "1:705727877431:web:599832725fe38da6304ab2",
-			measurementId: "G-TLLFNRRCGQ"
+            apiKey: "AIzaSyDCzZTk1MLMy3tA0XMI9b8mHZXQnmY2Khg",
+            authDomain: "my-coffee-8ea0a.firebaseapp.com",
+            databaseURL: "https://my-coffee-8ea0a-default-rtdb.firebaseio.com",
+            projectId: "my-coffee-8ea0a",
+            storageBucket: "my-coffee-8ea0a.firebasestorage.app",
+            messagingSenderId: "705727877431",
+            appId: "1:705727877431:web:599832725fe38da6304ab2",
+            measurementId: "G-TLLFNRRCGQ"
         };
 
-        // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
@@ -192,12 +405,23 @@
                 const currentTab = ref('log');
                 const records = ref([]);
                 const logs = ref([]);
-                const stores = ref(['7-11', '全家', '萊爾富']);
+                const stores = ref(['7-11', '全家', '萊爾富', 'OK超商']);
                 const newStoreName = ref('');
                 const isSyncing = ref(false);
-                const modals = ref({ record: { show: false, isEdit: false, data: {} }, log: { show: false, isEdit: false, data: {} } });
+                const modals = ref({ 
+                    record: { show: false, isEdit: false, data: {} }, 
+                    log: { show: false, isEdit: false, data: {} } 
+                });
 
-                // 從雲端同步資料
+                // 獲取本地日期格式 (YYYY-MM-DD)
+                const getLocalDateString = () => {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
                 onMounted(() => {
                     isSyncing.value = true;
                     db.ref('coffee_data').on('value', (snapshot) => {
@@ -205,14 +429,13 @@
                         if (data) {
                             records.value = data.records || [];
                             logs.value = data.logs || [];
-                            stores.value = data.stores || ['7-11', '全家', '萊爾富'];
+                            stores.value = data.stores || ['7-11', '全家', '萊爾富', 'OK超商'];
                             recalculate();
                         }
                         isSyncing.value = false;
                     });
                 });
 
-                // 自動同步到雲端
                 const syncToCloud = () => {
                     isSyncing.value = true;
                     db.ref('coffee_data').set({
@@ -220,27 +443,58 @@
                         logs: logs.value,
                         stores: stores.value
                     }).then(() => {
-                        setTimeout(() => isSyncing.value = false, 500);
+                        setTimeout(() => isSyncing.value = false, 300);
                     });
                 };
 
                 const sortedLogs = computed(() => [...logs.value].sort((a,b) => b.id - a.id));
                 const activeRecordsForLog = computed(() => records.value.filter(r => r.remaining > 0 || r.id === modals.value.log.data.recordId));
 
+                const getRemainingAfterLog = (log) => {
+                    const record = records.value.find(r => r.id === log.recordId);
+                    if (!record) return 'N/A';
+                    
+                    // 計算該筆log之後的剩餘杯數
+                    const recordLogs = logs.value.filter(l => l.recordId === log.recordId);
+                    const sortedRecordLogs = [...recordLogs].sort((a, b) => a.id - b.id);
+                    
+                    let remaining = record.total;
+                    let found = false;
+                    
+                    for (const l of sortedRecordLogs) {
+                        remaining += l.count; // 使用正負數計算
+                        if (l.id === log.id) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    return found ? remaining : record.remaining;
+                };
+
                 const recalculate = () => {
                     records.value.forEach(r => {
-                        const consumed = logs.value.filter(l => l.recordId === r.id).reduce((s, c) => s + c.count, 0);
-                        r.remaining = r.total - consumed;
+                        // 使用正負數計算剩餘杯數
+                        const totalChange = logs.value
+                            .filter(l => l.recordId === r.id)
+                            .reduce((sum, l) => sum + l.count, 0);
+                        r.remaining = r.total + totalChange;
                     });
                 };
 
                 const saveRecord = () => {
                     const d = modals.value.record.data;
+                    if (!d.itemName || !d.total) {
+                        alert('請填寫品項名稱和總杯數');
+                        return;
+                    }
+                    
                     if (modals.value.record.isEdit) {
                         const idx = records.value.findIndex(r => r.id === d.id);
                         records.value[idx] = d;
                     } else {
                         d.id = Date.now();
+                        d.remaining = d.total; // 初始化剩餘杯數
                         records.value.unshift(d);
                     }
                     recalculate();
@@ -249,21 +503,40 @@
                 };
 
                 const deleteRecord = (id) => {
-                    if (logs.value.some(l => l.recordId === id)) return alert('已有領用紀錄，無法刪除');
-                    if (confirm('確定刪除？')) {
-                        records.value = records.value.filter(r => r.id !== id);
-                        syncToCloud();
+                    const hasLogs = logs.value.some(l => l.recordId === id);
+                    if (hasLogs) {
+                        if (!confirm('此寄杯已有領用紀錄，刪除將一併移除所有相關紀錄。確定刪除？')) {
+                            return;
+                        }
+                        // 刪除相關紀錄
+                        logs.value = logs.value.filter(l => l.recordId !== id);
+                    } else {
+                        if (!confirm('確定刪除此寄杯？')) return;
                     }
+                    
+                    records.value = records.value.filter(r => r.id !== id);
+                    syncToCloud();
                 };
 
                 const saveLog = () => {
                     const d = modals.value.log.data;
-                    if (!modals.value.log.isEdit) {
-                        d.id = Date.now();
-                        logs.value.unshift(d);
-                    } else {
+                    if (!d.recordId || !d.count) {
+                        alert('請選擇寄杯項目並輸入數量');
+                        return;
+                    }
+                    
+                    // 檢查數量是否有效
+                    if (d.count === 0) {
+                        alert('數量不能為零');
+                        return;
+                    }
+                    
+                    if (modals.value.log.isEdit) {
                         const idx = logs.value.findIndex(l => l.id === d.id);
                         logs.value[idx] = d;
+                    } else {
+                        d.id = Date.now();
+                        logs.value.unshift(d);
                     }
                     recalculate();
                     syncToCloud();
@@ -271,29 +544,41 @@
                 };
 
                 const deleteLog = (id) => {
-                    if (confirm('確定刪除紀錄？杯數將還原')) {
-                        logs.value = logs.value.filter(l => l.id !== id);
-                        recalculate();
-                        syncToCloud();
-                    }
+                    if (!confirm('確定刪除此紀錄？')) return;
+                    
+                    logs.value = logs.value.filter(l => l.id !== id);
+                    recalculate();
+                    syncToCloud();
                 };
 
                 const addStore = () => {
-                    if (newStoreName.value) {
-                        stores.value.push(newStoreName.value);
+                    const name = newStoreName.value.trim();
+                    if (name && !stores.value.includes(name)) {
+                        stores.value.push(name);
                         newStoreName.value = '';
                         syncToCloud();
+                    } else if (stores.value.includes(name)) {
+                        alert('此超商名稱已存在');
                     }
                 };
 
                 const removeStore = (s) => {
-                    stores.value = stores.value.filter(item => item !== s);
-                    syncToCloud();
+                    if (confirm(`確定移除 "${s}"？`)) {
+                        stores.value = stores.value.filter(item => item !== s);
+                        syncToCloud();
+                    }
                 };
 
                 const openRecordModal = (item = null) => {
                     modals.value.record.isEdit = !!item;
-                    modals.value.record.data = item ? { ...item } : { date: new Date().toISOString().substr(0, 10), sn: '', store: stores.value[0], itemName: '', total: 10 };
+                    modals.value.record.data = item ? { ...item } : { 
+                        date: getLocalDateString(), 
+                        sn: '', 
+                        store: stores.value[0], 
+                        itemName: '', 
+                        total: 10,
+                        remaining: 10
+                    };
                     modals.value.record.show = true;
                 };
 
@@ -302,22 +587,33 @@
                     if (log) {
                         modals.value.log.data = { ...log };
                     } else {
-                        const lastId = logs.value.length > 0 ? logs.value[0].recordId : '';
-                        modals.value.log.data = { id: Date.now(), recordId: lastId, date: new Date().toISOString().substr(0, 10), count: 1, note: '' };
+                        const lastRecordId = logs.value.length > 0 ? logs.value[0].recordId : (records.value.length > 0 ? records.value[0].id : '');
+                        modals.value.log.data = { 
+                            id: Date.now(), 
+                            recordId: lastRecordId, 
+                            date: getLocalDateString(), // 使用本地日期函數確保正確
+                            count: -1, // 預設為領用1杯
+                            note: '' 
+                        };
                     }
                     modals.value.log.show = true;
                 };
 
-                const closeModals = () => { modals.value.record.show = false; modals.value.log.show = false; };
+                const closeModals = () => { 
+                    modals.value.record.show = false; 
+                    modals.value.log.show = false; 
+                };
+                
                 const getRecordName = (id) => {
                     const r = records.value.find(r => r.id === id);
-                    return r ? `[${r.store}] ${r.itemName}` : '已移除品項';
+                    return r ? `[${r.store}] ${r.itemName}` : '已刪除的品項';
                 };
 
                 return {
                     currentTab, records, logs, stores, newStoreName, modals, isSyncing,
                     sortedLogs, activeRecordsForLog,
-                    saveRecord, deleteRecord, saveLog, deleteLog, addStore, removeStore, openRecordModal, openLogModal, closeModals, getRecordName
+                    saveRecord, deleteRecord, saveLog, deleteLog, addStore, removeStore, 
+                    openRecordModal, openLogModal, closeModals, getRecordName, getRemainingAfterLog
                 };
             }
         }).mount('#app');
